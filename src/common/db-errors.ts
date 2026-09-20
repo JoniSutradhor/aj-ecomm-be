@@ -12,7 +12,8 @@ export const rethrowConflict = (
     if (code === '23505' && messages.unique) {
         throw new ConflictException(messages.unique);
     }
-    if (code === '23503' && messages.foreignKey) {
+    // 23503 foreign_key_violation, 23001 restrict_violation (ON DELETE RESTRICT)
+    if ((code === '23503' || code === '23001') && messages.foreignKey) {
         throw new ConflictException(messages.foreignKey);
     }
     throw error;

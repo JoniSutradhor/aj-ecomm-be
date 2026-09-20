@@ -105,7 +105,11 @@ export class StockService {
         type,
     }: ListMovementsDto): Promise<Paginated<StockMovement>> {
         const [items, total] = await this.movements.findAndCount({
-            where: { productId, type },
+            // TypeORM rejects undefined values in `where`, so only pass the filters that are set
+            where: {
+                ...(productId !== undefined && { productId }),
+                ...(type !== undefined && { type }),
+            },
             relations: { product: true },
             select: {
                 product: { id: true, name: true, sku: true },
