@@ -8,6 +8,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { CategoriesModule } from './categories/categories.module';
 import { AppConfig, configuration } from './config/configuration';
 import { HealthController } from './health/health.controller';
+import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module';
         CategoriesModule,
         StockModule,
         ProductsModule,
+        OrdersModule,
     ],
     controllers: [HealthController],
     providers: [

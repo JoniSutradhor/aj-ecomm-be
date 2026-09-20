@@ -21,6 +21,10 @@ export const configuration = () => ({
         secret: required('JWT_SECRET'),
         expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
     },
+    store: {
+        /** Flat delivery fee added to every order. */
+        shippingFee: parseFloat(process.env.SHIPPING_FEE ?? '0'),
+    },
     admin: {
         email: process.env.ADMIN_EMAIL,
         password: process.env.ADMIN_PASSWORD,
