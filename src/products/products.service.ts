@@ -8,15 +8,43 @@ import { StockMovementType } from '../stock/stock-movement.entity';
 import { StockService } from '../stock/stock.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
+import {
+    ListStoreProductsDto,
+    StoreProductSort,
+} from './dto/list-store-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Product } from './product.entity';
+import { Product, ProductStatus } from './product.entity';
 
 const CONFLICTS = {
     unique: 'A product with this SKU already exists',
     foreignKey: 'Category does not exist',
 };
 
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+const STORE_ORDER: Record<StoreProductSort, [string, 'ASC' | 'DESC']> = {
+    [StoreProductSort.NEWEST]: ['product.createdAt', 'DESC'],
+    [StoreProductSort.PRICE_ASC]: ['product.price', 'ASC'],
+    [StoreProductSort.PRICE_DESC]: ['product.price', 'DESC'],
+    [StoreProductSort.NAME]: ['product.name', 'ASC'],
+};
+
+/** What shoppers may see, no sku, status or stock thresholds. */
+const toStoreProduct = (product: Product) => ({
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: product.price,
+    compareAtPrice: product.compareAtPrice,
+    images: product.images,
+    stockQuantity: product.stockQuantity,
+    category: product.category && {
+        id: product.category.id,
+        name: product.category.name,
+        slug: product.category.slug,
+    },
+});
+
+const escapeLike =(value: string) => value.replace(/[\\%_]/g, '\\$&');
 
 @Injectable()
 export class ProductsService {
@@ -59,6 +87,48 @@ export class ProductsService {
 
         const [items, total] = await query.getManyAndCount();
         return { items, total, page, limit };
+    }
+
+    async findAllPublic({
+        page,
+        limit,
+        search,
+        categoryId,
+        sort,
+    }: ListStoreProductsDto): Promise<
+        Paginated<ReturnType<typeof toStoreProduct>>
+    > {
+        const [column, direction] = STORE_ORDER[sort];
+        const query = this.products
+            .createQueryBuilder('product')
+            .leftJoinAndSelect('product.category', 'category')
+            .where('product.status = :status', { status: ProductStatus.ACTIVE })
+            .orderBy(column, direction)
+            .addOrderBy('product.id', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+
+        if (search) {
+            query.andWhere(
+                `(product.name ILIKE :search ESCAPE '\\' OR product.description ILIKE :search ESCAPE '\\')`,
+                { search: `%${escapeLike(search)}%` }
+            );
+        }
+        if (categoryId) {
+            query.andWhere('product.categoryId = :categoryId', { categoryId });
+        }
+
+        const [items, total] = await query.getManyAndCount();
+        return { items: items.map(toStoreProduct), total, page, limit };
+    }
+
+    async findPublicBySlug(slug: string) {
+        const product = await this.products.findOne({
+            where: { slug, status: ProductStatus.ACTIVE },
+            relations: { category: true },
+        });
+        if (!product) throw new NotFoundException('Product not found');
+        return toStoreProduct(product);
     }
 
     async findOne(id: number) {

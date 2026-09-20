@@ -25,7 +25,7 @@ On first start an admin account is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 
 | Script              | What it does                          |
 | ------------------- | ------------------------------------- |
-| `npm run start:dev` | Dev server with watch                 |
+| `npm run dev`       | Dev server with watch (same as `start:dev`) |
 | `npm run build`     | Build to `dist`                       |
 | `npm run start:prod`| Run the build                         |
 | `npm run typecheck` | `tsc --noEmit`                        |

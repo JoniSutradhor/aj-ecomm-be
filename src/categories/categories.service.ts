@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { rethrowConflict } from '../common/db-errors';
 import { uniqueSlug } from '../common/slug';
-import { Product } from '../products/product.entity';
+import { Product, ProductStatus } from '../products/product.entity';
 import { Category } from './category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -34,6 +34,34 @@ export class CategoriesService {
             ...category,
             productCount: Number(raw[index].product_count),
         }));
+    }
+
+    /** Categories that have at least one active product. */
+    async findAllPublic() {
+        const { entities, raw } = await this.categories
+            .createQueryBuilder('category')
+            .addSelect(
+                (sub) =>
+                    sub
+                        .select('COUNT(*)')
+                        .from(Product, 'product')
+                        .where('product.categoryId = category.id')
+                        .andWhere('product.status = :status', {
+                            status: ProductStatus.ACTIVE,
+                        }),
+                'product_count'
+            )
+            .orderBy('category.name', 'ASC')
+            .getRawAndEntities();
+        return entities
+            .map((category, index) => ({
+                id: category.id,
+                name: category.name,
+                slug: category.slug,
+                description: category.description,
+                productCount: Number(raw[index].product_count),
+            }))
+            .filter((category) => category.productCount > 0);
     }
 
     async findOne(id: number) {
